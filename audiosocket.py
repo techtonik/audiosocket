@@ -18,6 +18,8 @@ from ctypes import wintypes
 # --- define necessary data structures from mmsystem.h
 HWAVEOUT = wintypes.HANDLE
 WAVE_FORMAT_PCM = 0x1
+WAVE_MAPPER = -1
+CALLBACK_NULL = 0
 class WAVEFORMATEX(ctypes.Structure):
   _fields_ = [
     ('wFormatTag',  wintypes.WORD),
@@ -43,6 +45,7 @@ class WAVEFORMATEX(ctypes.Structure):
 # of a block. Playback of PCM data can not be started in
 # the middle of a sample on a non-block-aligned boundary.
 
+hwaveout = HWAVEOUT()
 wavefx = WAVEFORMATEX(
   WAVE_FORMAT_PCM,
   2,     # nChannels
@@ -51,6 +54,17 @@ wavefx = WAVEFORMATEX(
   4,     # nBlockAlign = 2 nChannels * 16 wBitsPerSample / 8 bits per byte
   16,    # wBitsPerSample
   0
+)
+
+# Open default wave device
+ret = ctypes.windll.winmm.waveOutOpen(
+  ctypes.byref(hwaveout), # buffer to receive a handle identifying
+                          # the open waveform-audio output device
+  WAVE_MAPPER,            # constant to point to default wave device
+  ctypes.byref(wavefx),   # identifier for data format sent for device
+  0, # DWORD_PTR dwCallback - callback mechanizm
+  0, # DWORD_PTR dwCallbackInstance - user instance data for callback
+  CALLBACK_NULL # DWORD fdwOpen - flag for opening the device
 )
 
 #-- /CHAPTER 1 --
