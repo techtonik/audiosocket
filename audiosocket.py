@@ -4,6 +4,7 @@ http://code.google.com/p/rainforce/wiki/RawAudioSocket
 
 """
 
+import sys
 
 #-- CHAPTER 1: CONTINUOUS SOUND PLAYBACK WITH WINDOWS WINMM LIBRARY --
 #
@@ -20,6 +21,8 @@ HWAVEOUT = wintypes.HANDLE
 WAVE_FORMAT_PCM = 0x1
 WAVE_MAPPER = -1
 CALLBACK_NULL = 0
+MMSYSERR_NOERROR = 0
+
 class WAVEFORMATEX(ctypes.Structure):
   _fields_ = [
     ('wFormatTag',  wintypes.WORD),
@@ -67,4 +70,9 @@ ret = ctypes.windll.winmm.waveOutOpen(
   CALLBACK_NULL # DWORD fdwOpen - flag for opening the device
 )
 
+if ret != MMSYSERR_NOERROR:
+  sys.exit('Error opening default waveform audio device (WAVE_MAPPER)')
+
+print "Default Wave Audio output device is opened successfully"
+  
 #-- /CHAPTER 1 --
