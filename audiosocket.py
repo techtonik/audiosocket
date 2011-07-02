@@ -75,5 +75,7 @@ if ret != MMSYSERR_NOERROR:
 
 print "Default Wave Audio output device is opened successfully"
 
+# x. Close Sound Device
+
 ctypes.windll.winmm.waveOutClose(hwaveout)
 #-- /CHAPTER 1 --
