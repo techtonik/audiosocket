@@ -74,5 +74,6 @@ if ret != MMSYSERR_NOERROR:
   sys.exit('Error opening default waveform audio device (WAVE_MAPPER)')
 
 print "Default Wave Audio output device is opened successfully"
-  
+
+ctypes.windll.winmm.waveOutClose(hwaveout)
 #-- /CHAPTER 1 --
