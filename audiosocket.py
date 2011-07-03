@@ -122,11 +122,6 @@ class AudioWriter(object):
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutWrite failed')
 
-    # [ ] calculate sleep delay based on sample length
-    # iii [ ] Measure CPU usage spike during wait without delay
-    import time
-    time.sleep(1)
-
     # Wait until playback is finished
     while True:
       # unpreparing the header fails until the block is played
@@ -136,20 +131,21 @@ class AudioWriter(object):
               ctypes.sizeof(self.wavehdr)
             )
       if ret == WAVERR_STILLPLAYING:
-        import time
-        time.sleep(1)
         continue
       if ret != MMSYSERR_NOERROR:
         sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
       break
 
 
-# [ ] it's no good to read all the PCM data into memory at once
-data = open('95672__Corsica_S__frequency_change_approved.raw', 'rb').read()
-
 aw = AudioWriter(hwaveout)
-aw.write(data)
 
+df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
+while True:
+  data = df.read(100000)
+  if len(data) == 0:
+    break
+  aw.write(data)
+df.close()
 
 # x. Close Sound Device
 
