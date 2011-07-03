@@ -126,7 +126,6 @@ class AudioWriter(object):
     # as long as they are used from C code, because ctypes doesn't do this,
     # crashing the program when a callback is made
     self.waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
-    self.open()
 
   def open(self):
     """ 1. Open default wave device """
@@ -183,7 +182,9 @@ class AudioWriter(object):
     print "Default Wave Audio output device is closed"
 
 
+
 aw = AudioWriter()
+aw.open()
 
 df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
 while True:
