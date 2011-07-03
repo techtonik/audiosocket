@@ -14,6 +14,8 @@ import sys
 import ctypes
 from ctypes import wintypes
 
+winmm = ctypes.windll.winmm
+
 
 # 1. Open Sound Device
 
@@ -61,7 +63,7 @@ wavefx = WAVEFORMATEX(
 )
 
 # Open default wave device
-ret = ctypes.windll.winmm.waveOutOpen(
+ret = winmm.waveOutOpen(
   ctypes.byref(hwaveout), # buffer to receive a handle identifying
                           # the open waveform-audio output device
   WAVE_MAPPER,            # constant to point to default wave device
@@ -108,14 +110,14 @@ class AudioWriter(object):
     self.wavehdr.lpData = data
     
     # Prepare block for playback
-    if ctypes.windll.winmm.waveOutPrepareHeader(
+    if winmm.waveOutPrepareHeader(
          self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutPrepareHeader failed')
 
     # Write block, returns immediately unless a synchronous driver is
     # used (not often)
-    if ctypes.windll.winmm.waveOutWrite(
+    if winmm.waveOutWrite(
          self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutWrite failed')
@@ -128,7 +130,7 @@ class AudioWriter(object):
     # Wait until playback is finished
     while True:
       # unpreparing the header fails until the block is played
-      ret = ctypes.windll.winmm.waveOutUnprepareHeader(
+      ret = winmm.waveOutUnprepareHeader(
               self.hwaveout,
               ctypes.byref(self.wavehdr),
               ctypes.sizeof(self.wavehdr)
@@ -151,7 +153,7 @@ aw.write(data)
 
 # x. Close Sound Device
 
-ctypes.windll.winmm.waveOutClose(hwaveout)
+winmm.waveOutClose(hwaveout)
 print "Default Wave Audio output device is closed"
 
 #-- /CHAPTER 1 --
