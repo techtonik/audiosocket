@@ -14,6 +14,7 @@ Change History:
 0.2 - loads data piece by piece, plays with noticeable lags due
       to the absence of buffering, 100% CPU usage, because sleep
       interval is undefined
+0.3 - organize code into AudioWriter class
 """
 
 import sys
