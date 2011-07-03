@@ -2,6 +2,18 @@
 Implementation of Raw Audio Socket server spec in pure Python
 http://code.google.com/p/rainforce/wiki/RawAudioSocket
 
+Public domain work by anatoly techtonik <techtonik@gmail.com>
+Use MIT License if public domain doesn't make sense for you.
+
+
+Change History:
+
+0.1 - proof of concept, loads and plays entire data file in
+      one turn, uses predefined sleep interval of one second to
+      avoid 100% CPU usage when checking if playback is complete
+0.2 - loads data piece by piece, plays with noticeable lags due
+      to the absence of buffering, 100% CPU usage, because sleep
+      interval is undefined
 """
 
 import sys
