@@ -28,10 +28,10 @@ from ctypes import wintypes
 
 winmm = ctypes.windll.winmm
 
+# --- define necessary data structures from mmsystem.h
 
 # 1. Open Sound Device
 
-# --- define necessary data structures from mmsystem.h
 HWAVEOUT = wintypes.HANDLE
 WAVE_FORMAT_PCM = 0x1
 WAVE_MAPPER = -1
@@ -54,24 +54,12 @@ class WAVEFORMATEX(ctypes.Structure):
       # for WAVE_FORMAT_PCM should be equal to 8 or 16
     ('cbSize',      wintypes.WORD)]
       # extra format information size, should be 0
-# --- /define
 
 # Data must be processes in pieces that are multiple of
 # nBlockAlign bytes of data at a time. Written and read
 # data from a device must always start at the beginning
 # of a block. Playback of PCM data can not be started in
 # the middle of a sample on a non-block-aligned boundary.
-
-hwaveout = HWAVEOUT()
-wavefx = WAVEFORMATEX(
-  WAVE_FORMAT_PCM,
-  2,     # nChannels
-  44100, # SamplesPerSec
-  705600,# AvgBytesPerSec = 44100 SamplesPerSec * 16 wBitsPerSample
-  4,     # nBlockAlign = 2 nChannels * 16 wBitsPerSample / 8 bits per byte
-  16,    # wBitsPerSample
-  0
-)
 
 # Define function type for waveOutProc callback used to
 # receive event when a buffer finished playback
@@ -101,27 +89,8 @@ def py_waveOutProc(hwo, uMsg, dwInstance, dwParam1, dwParam2):
   print "Buffer playback finished"
 waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
   
-
-# Open default wave device
-ret = winmm.waveOutOpen(
-  ctypes.byref(hwaveout), # buffer to receive a handle identifying
-                          # the open waveform-audio output device
-  WAVE_MAPPER,            # constant to point to default wave device
-  ctypes.byref(wavefx),   # identifier for data format sent for device
-  waveOutProc, # DWORD_PTR dwCallback - callback function
-  0, # DWORD_PTR dwCallbackInstance - user instance data for callback
-  CALLBACK_FUNCTION # DWORD fdwOpen - flag for opening the device
-)
-
-if ret != MMSYSERR_NOERROR:
-  sys.exit('Error opening default waveform audio device (WAVE_MAPPER)')
-
-print "Default Wave Audio output device is opened successfully"
-
-
 # 2. Write Audio Blocks to Device
 
-# --- define necessary data structures
 PVOID = wintypes.HANDLE
 WAVERR_BASE = 32
 WAVERR_STILLPLAYING = WAVERR_BASE + 1
@@ -138,12 +107,40 @@ class WAVEHDR(ctypes.Structure):
 # The lpData, dwBufferLength, and dwFlags members must be set before calling
 # the waveInPrepareHeader or waveOutPrepareHeader function. (For either
 # function, the dwFlags member must be set to zero.)
-# --- /define
+# --- /define ----------------------------------------
+
 
 class AudioWriter(object):
-  def __init__(self, hwaveout):
-    self.hwaveout = hwaveout
+  def __init__(self):
+    self.hwaveout = HWAVEOUT()
     self.wavehdr = WAVEHDR()
+    self.wavefx = WAVEFORMATEX(
+      WAVE_FORMAT_PCM,
+      2,     # nChannels
+      44100, # SamplesPerSec
+      705600,# AvgBytesPerSec = 44100 SamplesPerSec * 16 wBitsPerSample
+      4,     # nBlockAlign = 2 nChannels * 16 wBitsPerSample / 8 bits per byte
+      16,    # wBitsPerSample
+      0
+    )
+    self.open()
+
+  def open(self):
+    """ 1. Open default wave device """
+    ret = winmm.waveOutOpen(
+      ctypes.byref(self.hwaveout), # buffer to receive a handle identifying
+                              # the open waveform-audio output device
+      WAVE_MAPPER,            # constant to point to default wave device
+      ctypes.byref(self.wavefx),   # identifier for data format sent for device
+      waveOutProc, # DWORD_PTR dwCallback - callback function
+      0, # DWORD_PTR dwCallbackInstance - user instance data for callback
+      CALLBACK_FUNCTION # DWORD fdwOpen - flag for opening the device
+    )
+
+    if ret != MMSYSERR_NOERROR:
+      sys.exit('Error opening default waveform audio device (WAVE_MAPPER)')
+
+    print "Default Wave Audio output device is opened successfully"
 
   def play(self, data):
     """Write PCM audio data block to the output device"""
@@ -178,7 +175,7 @@ class AudioWriter(object):
       break
 
 
-aw = AudioWriter(hwaveout)
+aw = AudioWriter()
 
 df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
 while True:
