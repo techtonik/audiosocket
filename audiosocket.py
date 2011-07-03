@@ -87,7 +87,6 @@ def py_waveOutProc(hwo, uMsg, dwInstance, dwParam1, dwParam2):
     return
   # [ ] should this call be avoided, because it is not thread safe?
   print "Buffer playback finished"
-waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
   
 # 2. Write Audio Blocks to Device
 
@@ -123,6 +122,10 @@ class AudioWriter(object):
       16,    # wBitsPerSample
       0
     )
+    # An extra care should be taken to keep references to CFUNCTYPE objects
+    # as long as they are used from C code, because ctypes doesn't do this,
+    # crashing the program when a callback is made
+    self.waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
     self.open()
 
   def open(self):
@@ -132,7 +135,7 @@ class AudioWriter(object):
                               # the open waveform-audio output device
       WAVE_MAPPER,            # constant to point to default wave device
       ctypes.byref(self.wavefx),   # identifier for data format sent for device
-      waveOutProc, # DWORD_PTR dwCallback - callback function
+      self.waveOutProc, # DWORD_PTR dwCallback - callback function
       0, # DWORD_PTR dwCallbackInstance - user instance data for callback
       CALLBACK_FUNCTION # DWORD fdwOpen - flag for opening the device
     )
