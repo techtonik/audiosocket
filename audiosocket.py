@@ -177,6 +177,11 @@ class AudioWriter(object):
         sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
       break
 
+  def close(self):
+    """ x. Close Sound Device """
+    winmm.waveOutClose(self.hwaveout)
+    print "Default Wave Audio output device is closed"
+
 
 aw = AudioWriter()
 
@@ -188,9 +193,6 @@ while True:
   aw.play(data)
 df.close()
 
-# x. Close Sound Device
-
-winmm.waveOutClose(hwaveout)
-print "Default Wave Audio output device is closed"
+aw.close()
 
 #-- /CHAPTER 1 --
