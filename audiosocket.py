@@ -81,6 +81,8 @@ print "Default Wave Audio output device is opened successfully"
 
 # --- define necessary data structures
 PVOID = wintypes.HANDLE
+WAVERR_BASE = 32
+WAVERR_STILLPLAYING = WAVERR_BASE + 1
 class WAVEHDR(ctypes.Structure):
   _fields_ = [
     ('lpData', wintypes.LPSTR), # pointer to waveform buffer
@@ -95,6 +97,57 @@ class WAVEHDR(ctypes.Structure):
 # the waveInPrepareHeader or waveOutPrepareHeader function. (For either
 # function, the dwFlags member must be set to zero.)
 # --- /define
+
+class AudioWriter(object):
+  def __init__(self, hwaveout):
+    self.hwaveout = hwaveout
+    self.wavehdr = WAVEHDR()
+
+  def write(self, data):
+    self.wavehdr.dwBufferLength = len(data)
+    self.wavehdr.lpData = data
+    
+    # Prepare block for playback
+    if ctypes.windll.winmm.waveOutPrepareHeader(
+         self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
+       ) != MMSYSERR_NOERROR:
+      sys.exit('Error: waveOutPrepareHeader failed')
+
+    # Write block, returns immediately unless a synchronous driver is
+    # used (not often)
+    if ctypes.windll.winmm.waveOutWrite(
+         self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
+       ) != MMSYSERR_NOERROR:
+      sys.exit('Error: waveOutWrite failed')
+
+    # [ ] calculate sleep delay based on sample length
+    # iii [ ] Measure CPU usage spike during wait without delay
+    import time
+    time.sleep(1)
+
+    # Wait until playback is finished
+    while True:
+      # unpreparing the header fails until the block is played
+      ret = ctypes.windll.winmm.waveOutUnprepareHeader(
+              self.hwaveout,
+              ctypes.byref(self.wavehdr),
+              ctypes.sizeof(self.wavehdr)
+            )
+      if ret == WAVERR_STILLPLAYING:
+        import time
+        time.sleep(1)
+        continue
+      if ret != MMSYSERR_NOERROR:
+        sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
+      break
+
+
+# [ ] it's no good to read all the PCM data into memory at once
+data = open('95672__Corsica_S__frequency_change_approved.raw', 'rb').read()
+
+aw = AudioWriter(hwaveout)
+aw.write(data)
+
 
 # x. Close Sound Device
 
