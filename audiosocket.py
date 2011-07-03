@@ -105,7 +105,8 @@ class AudioWriter(object):
     self.hwaveout = hwaveout
     self.wavehdr = WAVEHDR()
 
-  def write(self, data):
+  def play(self, data):
+    """Write PCM audio data block to the output device"""
     self.wavehdr.dwBufferLength = len(data)
     self.wavehdr.lpData = data
     
@@ -144,7 +145,7 @@ while True:
   data = df.read(100000)
   if len(data) == 0:
     break
-  aw.write(data)
+  aw.play(data)
 df.close()
 
 # x. Close Sound Device
