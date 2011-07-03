@@ -35,7 +35,6 @@ winmm = ctypes.windll.winmm
 HWAVEOUT = wintypes.HANDLE
 WAVE_FORMAT_PCM = 0x1
 WAVE_MAPPER = -1
-CALLBACK_NULL = 0
 MMSYSERR_NOERROR = 0
 
 class WAVEFORMATEX(ctypes.Structure):
@@ -74,15 +73,44 @@ wavefx = WAVEFORMATEX(
   0
 )
 
+# Define function type for waveOutProc callback used to
+# receive event when a buffer finished playback
+CALLBACK_NULL = 0
+CALLBACK_FUNCTION = 0x30000
+WOM_DONE = 0x3BD  # Message sent when data block playback is finished
+                  # dwParam1 will be a pointer to a buffer's WAVEHDR
+WAVEOUTPROCFUNC = ctypes.WINFUNCTYPE(
+  None,                    # return type
+  HWAVEOUT,                # hwo
+  wintypes.UINT,           # uMsg - Waveform-audio output message (WOM_*)
+  ctypes.POINTER(wintypes.DWORD), # dwInstance - User data from waveOutOpen
+  ctypes.POINTER(wintypes.DWORD), # dwParam1 - Message parameter
+  ctypes.POINTER(wintypes.DWORD)) # dwParam2 - Message parameter
+# CAUTION: Callback function is invoked in separate thread, so
+# any system-defined function calls from inside a callback function
+# should be avoided, except EnterCriticalSection, LeaveCriticalSection,
+# midiOutLongMsg, midiOutShortMsg, OutputDebugString, PostMessage,
+# PostThreadMessage, SetEvent, timeGetSystemTime, timeGetTime, timeKillEvent,
+# and timeSetEvent. Calling other wave functions will cause deadlock.
+
+def py_waveOutProc(hwo, uMsg, dwInstance, dwParam1, dwParam2):
+  """Read caution notice after WAVEOUTPROCFUNC definition"""
+  if uMsg != WOM_DONE:
+    return
+  # [ ] should this call be avoided, because it is not thread safe?
+  print "Buffer playback finished"
+waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
+  
+
 # Open default wave device
 ret = winmm.waveOutOpen(
   ctypes.byref(hwaveout), # buffer to receive a handle identifying
                           # the open waveform-audio output device
   WAVE_MAPPER,            # constant to point to default wave device
   ctypes.byref(wavefx),   # identifier for data format sent for device
-  0, # DWORD_PTR dwCallback - callback mechanizm
+  waveOutProc, # DWORD_PTR dwCallback - callback function
   0, # DWORD_PTR dwCallbackInstance - user instance data for callback
-  CALLBACK_NULL # DWORD fdwOpen - flag for opening the device
+  CALLBACK_FUNCTION # DWORD fdwOpen - flag for opening the device
 )
 
 if ret != MMSYSERR_NOERROR:
