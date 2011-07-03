@@ -14,6 +14,7 @@ import sys
 import ctypes
 from ctypes import wintypes
 
+
 # 1. Open Sound Device
 
 # --- define necessary data structures from mmsystem.h
@@ -75,7 +76,29 @@ if ret != MMSYSERR_NOERROR:
 
 print "Default Wave Audio output device is opened successfully"
 
+
+# 2. Write Audio Blocks to Device
+
+# --- define necessary data structures
+PVOID = wintypes.HANDLE
+class WAVEHDR(ctypes.Structure):
+  _fields_ = [
+    ('lpData', wintypes.LPSTR), # pointer to waveform buffer
+    ('dwBufferLength', wintypes.DWORD),  # in bytes
+    ('dwBytesRecorded', wintypes.DWORD), # when used in input
+    ('dwUser', wintypes.DWORD),          # user data
+    ('dwFlags', wintypes.DWORD),
+    ('dwLoops', wintypes.DWORD),  # times to loop, for output buffers only
+    ('lpNext', PVOID),            # reserved, struct wavehdr_tag *lpNext
+    ('reserved', wintypes.DWORD)] # reserved
+# The lpData, dwBufferLength, and dwFlags members must be set before calling
+# the waveInPrepareHeader or waveOutPrepareHeader function. (For either
+# function, the dwFlags member must be set to zero.)
+# --- /define
+
 # x. Close Sound Device
 
 ctypes.windll.winmm.waveOutClose(hwaveout)
+print "Default Wave Audio output device is closed"
+
 #-- /CHAPTER 1 --
