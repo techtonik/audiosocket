@@ -103,10 +103,15 @@ class WAVEHDR(ctypes.Structure):
 # --- /define ----------------------------------------
 
 
+# -- Notes on double buffering scheme to avoid lags --
+#
+# Windows maintains a queue of blocks sheduled for playback.
+# Any block passed through the waveOutPrepareHeader function
+# is inserted into the queue with waveOutWrite.
+
 class AudioWriter(object):
   def __init__(self):
     self.hwaveout = HWAVEOUT()
-    self.wavehdr = WAVEHDR()
     self.wavefx = WAVEFORMATEX(
       WAVE_FORMAT_PCM,
       2,     # nChannels
@@ -116,6 +121,10 @@ class AudioWriter(object):
       16,    # wBitsPerSample
       0
     )
+    # For gapless playback, we schedule two audio blocks at a time, each
+    # block with its own header
+    self.headers = [WAVEHDR(), WAVEHDR()]
+
     # An extra care should be taken to keep references to CFUNCTYPE objects
     # as long as they are used from C code, because ctypes doesn't do this,
     # crashing the program when a callback is made
@@ -131,7 +140,9 @@ class AudioWriter(object):
     print "Buffer playback finished"
 
   def open(self):
-    """ 1. Open default wave device """
+    """ 1. Open default wave device, tune it for the incoming data flow,
+           setup callback function
+    """
     ret = winmm.waveOutOpen(
       ctypes.byref(self.hwaveout), # buffer to receive a handle identifying
                               # the open waveform-audio output device
@@ -147,31 +158,36 @@ class AudioWriter(object):
 
     print "Default Wave Audio output device is opened successfully"
 
-  def play(self, data):
-    """Write PCM audio data block to the output device"""
-    self.wavehdr.dwBufferLength = len(data)
-    self.wavehdr.lpData = data
-    
+  def _play_block(self, data, header):
+    """Schedule data for playback from buffer specified by WAVEHDR header"""
+    header.dwBufferLength = len(data)
+    header.lpData = data
+
     # Prepare block for playback
     if winmm.waveOutPrepareHeader(
-         self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
+         self.hwaveout, ctypes.byref(header), ctypes.sizeof(header)
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutPrepareHeader failed')
 
     # Write block, returns immediately unless a synchronous driver is
     # used (not often)
     if winmm.waveOutWrite(
-         self.hwaveout, ctypes.byref(self.wavehdr), ctypes.sizeof(self.wavehdr)
+         self.hwaveout, ctypes.byref(header), ctypes.sizeof(header)
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutWrite failed')
+
+  def play(self, data):
+    """Write PCM audio data block to the output device"""
+    header = self.headers[0]
+    self._play_block(data, header)
 
     # Wait until playback is finished
     while True:
       # unpreparing the header fails until the block is played
       ret = winmm.waveOutUnprepareHeader(
               self.hwaveout,
-              ctypes.byref(self.wavehdr),
-              ctypes.sizeof(self.wavehdr)
+              ctypes.byref(header),
+              ctypes.sizeof(header)
             )
       if ret == WAVERR_STILLPLAYING:
         continue
