@@ -81,13 +81,6 @@ WAVEOUTPROCFUNC = ctypes.WINFUNCTYPE(
 # PostThreadMessage, SetEvent, timeGetSystemTime, timeGetTime, timeKillEvent,
 # and timeSetEvent. Calling other wave functions will cause deadlock.
 
-def py_waveOutProc(hwo, uMsg, dwInstance, dwParam1, dwParam2):
-  """Read caution notice after WAVEOUTPROCFUNC definition"""
-  if uMsg != WOM_DONE:
-    return
-  # [ ] should this call be avoided, because it is not thread safe?
-  print "Buffer playback finished"
-  
 # 2. Write Audio Blocks to Device
 
 PVOID = wintypes.HANDLE
@@ -125,7 +118,16 @@ class AudioWriter(object):
     # An extra care should be taken to keep references to CFUNCTYPE objects
     # as long as they are used from C code, because ctypes doesn't do this,
     # crashing the program when a callback is made
-    self.waveOutProc = WAVEOUTPROCFUNC(py_waveOutProc)
+    self.waveOutProc = WAVEOUTPROCFUNC(self._waveOutProc)
+
+  def _waveOutProc(self, hwo, uMsg, dwInstance, dwParam1, dwParam2):
+    """Callback function for waveOutOpen()
+       See WAVEOUTPROCFUNC definition and caution notes below it
+    """
+    if uMsg != WOM_DONE:
+      return
+    # [ ] should this call be avoided, because it is not thread safe?
+    print "Buffer playback finished"
 
   def open(self):
     """ 1. Open default wave device """
