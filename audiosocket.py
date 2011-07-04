@@ -15,6 +15,9 @@ Change History:
       to the absence of buffering, 100% CPU usage, because sleep
       interval is undefined
 0.3 - organize code into AudioWriter class
+0.4 - playback lag is killed by double buffering, still 100% CPU
+      usage because of constant polling to check for processed
+      blocks
 """
 
 import sys
