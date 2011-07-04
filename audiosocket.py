@@ -62,25 +62,7 @@ class WAVEFORMATEX(ctypes.Structure):
 # of a block. Playback of PCM data can not be started in
 # the middle of a sample on a non-block-aligned boundary.
 
-# Define function type for waveOutProc callback used to
-# receive event when a buffer finished playback
 CALLBACK_NULL = 0
-CALLBACK_FUNCTION = 0x30000
-WOM_DONE = 0x3BD  # Message sent when data block playback is finished
-                  # dwParam1 will be a pointer to a buffer's WAVEHDR
-WAVEOUTPROCFUNC = ctypes.WINFUNCTYPE(
-  None,                    # return type
-  HWAVEOUT,                # hwo
-  wintypes.UINT,           # uMsg - Waveform-audio output message (WOM_*)
-  ctypes.POINTER(wintypes.DWORD), # dwInstance - User data from waveOutOpen
-  ctypes.POINTER(wintypes.DWORD), # dwParam1 - Message parameter
-  ctypes.POINTER(wintypes.DWORD)) # dwParam2 - Message parameter
-# CAUTION: Callback function is invoked in separate thread, so
-# any system-defined function calls from inside a callback function
-# should be avoided, except EnterCriticalSection, LeaveCriticalSection,
-# midiOutLongMsg, midiOutShortMsg, OutputDebugString, PostMessage,
-# PostThreadMessage, SetEvent, timeGetSystemTime, timeGetTime, timeKillEvent,
-# and timeSetEvent. Calling other wave functions will cause deadlock.
 
 # 2. Write Audio Blocks to Device
 
@@ -126,35 +108,20 @@ class AudioWriter(object):
     # block with its own header
     self.headers = [WAVEHDR(), WAVEHDR()]
 
-    # An extra care should be taken to keep references to CFUNCTYPE objects
-    # as long as they are used from C code, because ctypes doesn't do this,
-    # crashing the program when a callback is made
-    self.waveOutProc = WAVEOUTPROCFUNC(self._waveOutProc)
-
     #: configurable size of chunks (data blocks) read from input stream
     self.CHUNKSIZE = 100 * 2**10
 
-  def _waveOutProc(self, hwo, uMsg, dwInstance, dwParam1, dwParam2):
-    """Callback function for waveOutOpen()
-       See WAVEOUTPROCFUNC definition and caution notes below it
-    """
-    if uMsg != WOM_DONE:
-      return
-    # [ ] should this call be avoided, because it is not thread safe?
-    print "Buffer playback finished"
-
   def open(self):
-    """ 1. Open default wave device, tune it for the incoming data flow,
-           setup callback function
+    """ 1. Open default wave device, tune it for the incoming data flow
     """
     ret = winmm.waveOutOpen(
       ctypes.byref(self.hwaveout), # buffer to receive a handle identifying
                               # the open waveform-audio output device
       WAVE_MAPPER,            # constant to point to default wave device
       ctypes.byref(self.wavefx),   # identifier for data format sent for device
-      self.waveOutProc, # DWORD_PTR dwCallback - callback function
+      0, # DWORD_PTR dwCallback - callback function
       0, # DWORD_PTR dwCallbackInstance - user instance data for callback
-      CALLBACK_FUNCTION # DWORD fdwOpen - flag for opening the device
+      CALLBACK_NULL  # DWORD fdwOpen - flag for opening the device
     )
 
     if ret != MMSYSERR_NOERROR:
