@@ -93,13 +93,14 @@ class WAVEHDR(ctypes.Structure):
     ('dwBufferLength', wintypes.DWORD),  # in bytes
     ('dwBytesRecorded', wintypes.DWORD), # when used in input
     ('dwUser', wintypes.DWORD),          # user data
-    ('dwFlags', wintypes.DWORD),
+    ('dwFlags', wintypes.DWORD),  # various WHDR_* flags set by Windows
     ('dwLoops', wintypes.DWORD),  # times to loop, for output buffers only
     ('lpNext', PVOID),            # reserved, struct wavehdr_tag *lpNext
     ('reserved', wintypes.DWORD)] # reserved
 # The lpData, dwBufferLength, and dwFlags members must be set before calling
 # the waveInPrepareHeader or waveOutPrepareHeader function. (For either
 # function, the dwFlags member must be set to zero.)
+WHDR_DONE = 1  # Set by the device driver for finished buffers
 # --- /define ----------------------------------------
 
 
@@ -183,27 +184,43 @@ class AudioWriter(object):
   def play(self, stream):
     """Read PCM audio blocks from stream and write to the output device"""
 
+    blocknum = len(self.headers) #: number of audio data blocks to be queued
+    curblock = 0      #: start with block 0
+    stopping = False  #: stopping playback when no input
     while True:
-      data = stream.read(self.CHUNKSIZE)
-      if len(data) == 0:
+      freeids = [x for x in xrange(blocknum)
+                   if self.headers[x].dwFlags in (0, WHDR_DONE)]
+      if (len(freeids) == blocknum) and stopping:
         break
+      print "debug: empty blocks %s" % freeids
 
-      header = self.headers[0]
-      self._schedule_block(data, header)
+      # Fill audio queue
+      for i in freeids:
+        if stopping:
+          break
+        print "debug: scheduling block %d" % i
+        data = stream.read(self.CHUNKSIZE)
+        if len(data) == 0:
+          stopping = True
+          break
+        self._schedule_block(data, self.headers[i])
 
-      # Wait until playback is finished
+      print "debug: waiting for block %d" % curblock
       while True:
         # unpreparing the header fails until the block is played
         ret = winmm.waveOutUnprepareHeader(
                 self.hwaveout,
-                ctypes.byref(header),
-                ctypes.sizeof(header)
+                ctypes.byref(self.headers[curblock]),
+                ctypes.sizeof(self.headers[curblock])
               )
         if ret == WAVERR_STILLPLAYING:
           continue
         if ret != MMSYSERR_NOERROR:
           sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
         break
+
+      # Switch waiting pointer to the next block
+      curblock = (curblock + 1) % len(self.headers)
 
   def close(self):
     """ x. Close Sound Device """
