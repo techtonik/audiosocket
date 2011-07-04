@@ -130,6 +130,9 @@ class AudioWriter(object):
     # crashing the program when a callback is made
     self.waveOutProc = WAVEOUTPROCFUNC(self._waveOutProc)
 
+    #: configurable size of chunks (data blocks) read from input stream
+    self.CHUNKSIZE = 100 * 2**10
+
   def _waveOutProc(self, hwo, uMsg, dwInstance, dwParam1, dwParam2):
     """Callback function for waveOutOpen()
        See WAVEOUTPROCFUNC definition and caution notes below it
@@ -158,8 +161,9 @@ class AudioWriter(object):
 
     print "Default Wave Audio output device is opened successfully"
 
-  def _play_block(self, data, header):
-    """Schedule data for playback from buffer specified by WAVEHDR header"""
+  def _schedule_block(self, data, header):
+    """Schedule PCM audio data block for playback. header parameter
+       references free WAVEHDR structure to be used for scheduling."""
     header.dwBufferLength = len(data)
     header.lpData = data
 
@@ -176,24 +180,30 @@ class AudioWriter(object):
        ) != MMSYSERR_NOERROR:
       sys.exit('Error: waveOutWrite failed')
 
-  def play(self, data):
-    """Write PCM audio data block to the output device"""
-    header = self.headers[0]
-    self._play_block(data, header)
+  def play(self, stream):
+    """Read PCM audio blocks from stream and write to the output device"""
 
-    # Wait until playback is finished
     while True:
-      # unpreparing the header fails until the block is played
-      ret = winmm.waveOutUnprepareHeader(
-              self.hwaveout,
-              ctypes.byref(header),
-              ctypes.sizeof(header)
-            )
-      if ret == WAVERR_STILLPLAYING:
-        continue
-      if ret != MMSYSERR_NOERROR:
-        sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
-      break
+      data = stream.read(self.CHUNKSIZE)
+      if len(data) == 0:
+        break
+
+      header = self.headers[0]
+      self._schedule_block(data, header)
+
+      # Wait until playback is finished
+      while True:
+        # unpreparing the header fails until the block is played
+        ret = winmm.waveOutUnprepareHeader(
+                self.hwaveout,
+                ctypes.byref(header),
+                ctypes.sizeof(header)
+              )
+        if ret == WAVERR_STILLPLAYING:
+          continue
+        if ret != MMSYSERR_NOERROR:
+          sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
+        break
 
   def close(self):
     """ x. Close Sound Device """
@@ -206,11 +216,7 @@ aw = AudioWriter()
 aw.open()
 
 df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
-while True:
-  data = df.read(100000)
-  if len(data) == 0:
-    break
-  aw.play(data)
+aw.play(df)
 df.close()
 
 aw.close()
