@@ -19,6 +19,11 @@ Change History:
 
 import sys
 
+DEBUG = False
+def debug(msg):
+  if DEBUG:
+    print "debug: %s" % msg
+
 #-- CHAPTER 1: CONTINUOUS SOUND PLAYBACK WITH WINDOWS WINMM LIBRARY --
 #
 # Based on tutorial "Playing Audio in Windows using waveOut Interface"
@@ -159,20 +164,20 @@ class AudioWriter(object):
                    if self.headers[x].dwFlags in (0, WHDR_DONE)]
       if (len(freeids) == blocknum) and stopping:
         break
-      print "debug: empty blocks %s" % freeids
+      debug("empty blocks %s" % freeids)
 
       # Fill audio queue
       for i in freeids:
         if stopping:
           break
-        print "debug: scheduling block %d" % i
+        debug("scheduling block %d" % i)
         data = stream.read(self.CHUNKSIZE)
         if len(data) == 0:
           stopping = True
           break
         self._schedule_block(data, self.headers[i])
 
-      print "debug: waiting for block %d" % curblock
+      debug("waiting for block %d" % curblock)
       while True:
         # unpreparing the header fails until the block is played
         ret = winmm.waveOutUnprepareHeader(
