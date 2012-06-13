@@ -19,6 +19,7 @@ Change History:
       usage because of constant polling to check for processed
       blocks
 0.5 - remove 100% CPU usage by sleeping while a block is playing
+0.6(dev) - Python 3 compatibility
 """
 
 import sys
@@ -27,7 +28,7 @@ import time
 DEBUG = False
 def debug(msg):
   if DEBUG:
-    print "debug: %s" % msg
+    print("debug: %s" % msg)
 
 #-- CHAPTER 1: CONTINUOUS SOUND PLAYBACK WITH WINDOWS WINMM LIBRARY --
 #
@@ -168,7 +169,7 @@ class AudioWriter(object):
     curblock = 0      #: start with block 0
     stopping = False  #: stopping playback when no input
     while True:
-      freeids = [x for x in xrange(blocknum)
+      freeids = [x for x in range(blocknum)
                    if self.headers[x].dwFlags in (0, WHDR_DONE)]
       if (len(freeids) == blocknum) and stopping:
         break
@@ -219,6 +220,7 @@ class AudioWriter(object):
 
 
 if __name__ == '__main__':
+  print("--- Testing playback with local file ---")
   aw = AudioWriter()
   aw.open()
 
