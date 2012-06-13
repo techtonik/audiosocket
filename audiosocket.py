@@ -204,13 +204,14 @@ class AudioWriter(object):
 
 
 
-aw = AudioWriter()
-aw.open()
+if __name__ == '__main__':
+  aw = AudioWriter()
+  aw.open()
 
-df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
-aw.play(df)
-df.close()
+  df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
+  aw.play(df)
+  df.close()
 
-aw.close()
+  aw.close()
 
 #-- /CHAPTER 1 --
