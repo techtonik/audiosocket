@@ -107,7 +107,7 @@ class AudioWriter(object):
       WAVE_FORMAT_PCM,
       2,     # nChannels
       44100, # SamplesPerSec
-      705600,# AvgBytesPerSec = 44100 SamplesPerSec * 16 wBitsPerSample
+      176400,# AvgBytesPerSec = 44100 SamplesPerSec * 4 nBlockAlign
       4,     # nBlockAlign = 2 nChannels * 16 wBitsPerSample / 8 bits per byte
       16,    # wBitsPerSample
       0
