@@ -140,7 +140,7 @@ class AudioWriter(object):
     if ret != MMSYSERR_NOERROR:
       sys.exit('Error opening default waveform audio device (WAVE_MAPPER)')
 
-    print "Default Wave Audio output device is opened successfully"
+    debug( "Default Wave Audio output device is opened successfully" )
 
   def _schedule_block(self, data, header):
     """Schedule PCM audio data block for playback. header parameter
@@ -214,7 +214,7 @@ class AudioWriter(object):
   def close(self):
     """ x. Close Sound Device """
     winmm.waveOutClose(self.hwaveout)
-    print "Default Wave Audio output device is closed"
+    debug( "Default Wave Audio output device is closed" )
 
 
 
