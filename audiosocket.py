@@ -217,6 +217,14 @@ class AudioWriter(object):
     winmm.waveOutClose(self.hwaveout)
     debug( "Default Wave Audio output device is closed" )
 
+# aw = AudioWriter()
+# aw.open()
+# # PCM 16bit, little endian, signed, 44.1kHz, stereo, left interleaved
+# with open('sample.raw', 'rb') as stream:
+#   aw.play(stream)
+# aw.close()
+
+#-- /CHAPTER 1 --
 
 
 if __name__ == '__main__':
@@ -230,4 +238,14 @@ if __name__ == '__main__':
 
   aw.close()
 
-#-- /CHAPTER 1 --
+
+  print("--- Testing playback from port :44100 ---")
+  print("To feed audio, execute:")
+  print("  nc -v localhost 44100 < 95672__Corsica_S__frequency_change_approved.raw")
+
+  aw = AudioWriter()
+  aw.open()
+  # [ ]  open network socket and convert it to readable stream
+  # aw.play(stream)
+  aw.close()
+
