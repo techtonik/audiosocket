@@ -18,9 +18,11 @@ Change History:
 0.4 - playback lag is killed by double buffering, still 100% CPU
       usage because of constant polling to check for processed
       blocks
+0.5 - remove 100% CPU usage by sleeping while a block is playing
 """
 
 import sys
+import time
 
 DEBUG = False
 def debug(msg):
@@ -117,7 +119,10 @@ class AudioWriter(object):
     self.headers = [WAVEHDR(), WAVEHDR()]
 
     #: configurable size of chunks (data blocks) read from input stream
-    self.CHUNKSIZE = 100 * 2**10
+    self.BUFSIZE = 100 * 2**10
+
+    # Buffer playback time. The time after which the buffer is free
+    self.BUFPLAYTIME = float(self.BUFSIZE) / 176400  # AvgBytesPerSec
 
   def open(self):
     """ 1. Open default wave device, tune it for the incoming data flow
@@ -174,7 +179,7 @@ class AudioWriter(object):
         if stopping:
           break
         debug("scheduling block %d" % i)
-        data = stream.read(self.CHUNKSIZE)
+        data = stream.read(self.BUFSIZE)
         if len(data) == 0:
           stopping = True
           break
@@ -185,6 +190,8 @@ class AudioWriter(object):
       # waiting until buffer playback is finished by constantly polling
       # its status eats 100% CPU time. this counts how many checks are made
       pollsnum = 0
+      # avoid 100% CPU usage - with this pollsnum won't be greater than 1
+      time.sleep(self.BUFPLAYTIME)
 
       while True:
         pollsnum += 1
@@ -199,7 +206,7 @@ class AudioWriter(object):
         if ret != MMSYSERR_NOERROR:
           sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
         break
-      print "%s checks" % pollsnum
+      debug("  %s check(s)" % pollsnum)
 
       # Switch waiting pointer to the next block
       curblock = (curblock + 1) % len(self.headers)
