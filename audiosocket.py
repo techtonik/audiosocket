@@ -181,7 +181,13 @@ class AudioWriter(object):
         self._schedule_block(data, self.headers[i])
 
       debug("waiting for block %d" % curblock)
+
+      # waiting until buffer playback is finished by constantly polling
+      # its status eats 100% CPU time. this counts how many checks are made
+      pollsnum = 0
+
       while True:
+        pollsnum += 1
         # unpreparing the header fails until the block is played
         ret = winmm.waveOutUnprepareHeader(
                 self.hwaveout,
@@ -193,6 +199,7 @@ class AudioWriter(object):
         if ret != MMSYSERR_NOERROR:
           sys.exit('Error: waveOutUnprepareHeader failed with code 0x%x' % ret)
         break
+      print "%s checks" % pollsnum
 
       # Switch waiting pointer to the next block
       curblock = (curblock + 1) % len(self.headers)
