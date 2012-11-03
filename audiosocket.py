@@ -124,9 +124,7 @@ class AudioWriter(object):
 
     #: configurable size of chunks (data blocks) read from input stream
     self.BUFSIZE = 100 * 2**10
-
-    # Buffer playback time. The time after which the buffer is free
-    self.BUFPLAYTIME = float(self.BUFSIZE) / 176400  # AvgBytesPerSec
+    self.BYTESPERSEC = 176400  # needed to calculate buffer playback time
 
   def open(self):
     """ 1. Open default wave device, tune it for the incoming data flow
@@ -166,11 +164,16 @@ class AudioWriter(object):
       sys.exit('Error: waveOutWrite failed')
 
   def play(self, stream):
-    """Read PCM audio blocks from stream and write to the output device"""
+    """Read PCM audio blocks from stream and write to the output device
+
+       `stream` is anything with .read() method. Playback stops if read
+       operation returned 0 bytes
+    """
 
     blocknum = len(self.headers) #: number of audio data blocks to be queued
     curblock = 0      #: start with block 0
     stopping = False  #: stopping playback when no input
+    prevlen  = 0      #: previously read length to detect buffer underruns
     while True:
       freeids = [x for x in range(blocknum)
                    if self.headers[x].dwFlags in (0, WHDR_DONE)]
@@ -184,9 +187,14 @@ class AudioWriter(object):
           break
         debug("scheduling block %d" % i)
         data = stream.read(self.BUFSIZE)
-        if len(data) == 0:
+        readlen = len(data)
+        if readlen == 0:
           stopping = True
           break
+        if prevlen < self.BUFSIZE and readlen < self.BUFSIZE:
+          debug("  underrun warn - read %s/%s (%d%%) of buffer size" %
+                (readlen, self.BUFSIZE, readlen*100//self.BUFSIZE))
+
         self._schedule_block(data, self.headers[i])
 
       debug("waiting for block %d" % curblock)
@@ -195,7 +203,7 @@ class AudioWriter(object):
       # its status eats 100% CPU time. this counts how many checks are made
       pollsnum = 0
       # avoid 100% CPU usage - with this pollsnum won't be greater than 1
-      time.sleep(self.BUFPLAYTIME)
+      time.sleep(readlen/float(self.BYTESPERSEC))
 
       while True:
         pollsnum += 1
@@ -214,6 +222,7 @@ class AudioWriter(object):
 
       # Switch waiting pointer to the next block
       curblock = (curblock + 1) % len(self.headers)
+      prevlen = readlen
 
   def close(self):
     """ x. Close Sound Device """
