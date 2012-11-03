@@ -23,10 +23,18 @@ Change History:
       blocks
 0.5 - remove 100% CPU usage by sleeping while a block is playing
 0.6 - Python 3 compatibility
+0.7 - socket stream playback, buffer underrun detection (not
+      exposed in API), still Windows only
+
+Usage:
+
+Just execute .py file for a demo, and look at the end of the source
+code too see how it is used as a library.
 """
 
 import sys
 import time
+import socket
 
 DEBUG = False
 def debug(msg):
@@ -231,6 +239,33 @@ class AudioWriter(object):
 
 #-- /CHAPTER 1 --
 
+#-- CHAPTER 2: READING STREAM FROM THE SOCKET --
+
+class SocketStream(object):
+  """ Convert network socket connection to a readable stream object """
+  def __init__(self, host='localhost', port=44100):
+    """Wait until there is a connection"""
+    # [ ] listening socket blocks keyboard input, so CtrlC/CtrlBreak
+    #     will not work until a new connection is established
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    # [ ] only one client served at a time
+    sock.listen(0)
+    self.conn, self.addr = sock.accept()
+    self.sock = sock
+
+  def read(self, size):
+    return self.conn.recv(size)
+
+  def close(self):
+    self.conn.close()
+    try:
+      self.sock.shutdown(socket.SHUT_RDWR)
+    except:
+      pass
+    self.sock.close()
+
 
 if __name__ == '__main__':
   print("--- Local file playback example ---")
@@ -244,15 +279,18 @@ if __name__ == '__main__':
   aw.close()
 
 
-  print("--- Playback from port :44100 is not ready yet ---")
-  """
-  print("To feed audio, execute:")
+  print("--- Playback from TCP port :44100 ---")
+  print("To feed an audio stream with netcat, execute:")
   print("  nc -v localhost 44100 < sample.raw")
 
   aw = AudioWriter()
   aw.open()
-  # [ ]  open network socket and convert it to readable stream
-  # aw.play(stream)
+
+  while True:      
+    stream = SocketStream(host='')
+    print("got signal from %s:%s" % stream.addr)
+    aw.play(stream)
+    stream.close()
+
   aw.close()
-  """
 
