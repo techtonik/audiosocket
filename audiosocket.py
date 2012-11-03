@@ -22,7 +22,7 @@ Change History:
       usage because of constant polling to check for processed
       blocks
 0.5 - remove 100% CPU usage by sleeping while a block is playing
-0.6(dev) - Python 3 compatibility
+0.6 - Python 3 compatibility
 """
 
 import sys
@@ -235,7 +235,8 @@ if __name__ == '__main__':
   aw.close()
 
 
-  print("--- Testing playback from port :44100 (work in process)---")
+  print("--- Playback from port :44100 is not ready yet ---")
+  """
   print("To feed audio, execute:")
   print("  nc -v localhost 44100 < sample.raw")
 
@@ -244,4 +245,5 @@ if __name__ == '__main__':
   # [ ]  open network socket and convert it to readable stream
   # aw.play(stream)
   aw.close()
+  """
 
