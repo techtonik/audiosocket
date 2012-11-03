@@ -5,6 +5,9 @@ http://code.google.com/p/rainforce/wiki/RawAudioSocket
 Public domain work by anatoly techtonik <techtonik@gmail.com>
 Use MIT License if public domain doesn't make sense for you.
 
+'sample.raw' is 'frequency_change_approved.wav' air traffic
+control phrase recorded by corsica_s through walkie-talkie.
+
 
 Change History:
 
@@ -217,31 +220,24 @@ class AudioWriter(object):
     winmm.waveOutClose(self.hwaveout)
     debug( "Default Wave Audio output device is closed" )
 
-# aw = AudioWriter()
-# aw.open()
-# # PCM 16bit, little endian, signed, 44.1kHz, stereo, left interleaved
-# with open('sample.raw', 'rb') as stream:
-#   aw.play(stream)
-# aw.close()
-
 #-- /CHAPTER 1 --
 
 
 if __name__ == '__main__':
-  print("--- Testing playback with local file ---")
+  print("--- Local file playback example ---")
   aw = AudioWriter()
   aw.open()
-
-  df = open('95672__Corsica_S__frequency_change_approved.raw', 'rb')
-  aw.play(df)
-  df.close()
+  
+  # PCM 16bit, little endian, signed, 44.1kHz, stereo, left interleaved
+  with open('sample.raw', 'rb') as stream:
+    aw.play(stream)
 
   aw.close()
 
 
-  print("--- Testing playback from port :44100 ---")
+  print("--- Testing playback from port :44100 (work in process)---")
   print("To feed audio, execute:")
-  print("  nc -v localhost 44100 < 95672__Corsica_S__frequency_change_approved.raw")
+  print("  nc -v localhost 44100 < sample.raw")
 
   aw = AudioWriter()
   aw.open()
